@@ -236,7 +236,7 @@ class LinePlot extends Plot
         if (isset($this->coords[1])) {
             if (safe_count($this->coords[1]) != $numpoints) {
                 Util\JpGraphError::RaiseL(2003, safe_count($this->coords[1]), $numpoints);
-            //("Number of X and Y points are not equal. Number of X-points:". safe_count($this->coords[1])." Number of Y-points:$numpoints");
+                //("Number of X and Y points are not equal. Number of X-points:". safe_count($this->coords[1])." Number of Y-points:$numpoints");
             } else {
                 $exist_x = true;
             }
@@ -408,7 +408,8 @@ class LinePlot extends Plot
                 $img->SetLineWeight(1);
                 $grad = new Gradient($img);
                 $grad->SetNumColors($this->fillgrad_numcolors);
-                $grad->FilledFlatPolygon($cord, $this->fillgrad_fromcolor, $this->fillgrad_tocolor);
+                $sliced_cord = $this->stripConsecutiveDuplicates($cord);
+                $grad->FilledFlatPolygon($sliced_cord, $this->fillgrad_fromcolor, $this->fillgrad_tocolor);
                 $img->SetLineWeight($this->weight);
             } else {
                 $img->SetColor($this->fill_color);
@@ -497,5 +498,44 @@ class LinePlot extends Plot
                 $this->csimareas .= $this->mark->GetCSIMAreas();
             }
         }
+    }
+
+    private function stripConsecutiveDuplicates($coords)
+    {
+        // Remove first coordinate before drawing the polygon to avoid vertical line
+        $coords = array_slice($coords, 2);
+
+        $result = [];
+        $count = count($coords);
+
+        // Handle edge case for empty array or arrays with less than 2 elements
+        if ($count == 0) {
+            return $result;
+        } elseif ($count <= 4) {
+            return $coords;
+        }
+
+        // Initialize with the first x and y coordinates
+        $result[] = $coords[0];
+        $result[] = $coords[1];
+
+        // Rounding may result in duplicate initial cordinates
+        $i = 2;
+        // Iterate through the array starting from the second pair
+        while ($i < $count) {
+            // Check if the current x-coordinate is different from the last added x-coordinate
+            if ($coords[$i] != $result[count($result) - 2]) {
+                // Add current coordinate pair to result
+                $result[] = $coords[$i];
+                $result[] = $coords[$i + 1];
+            } elseif ($i === $count - 2) {
+                // Always add the last two coordinates
+                $result[] = $coords[$i];
+                $result[] = $coords[$i + 1];
+            }
+            $i += 2;
+        }
+
+        return $result;
     }
 } // @class
